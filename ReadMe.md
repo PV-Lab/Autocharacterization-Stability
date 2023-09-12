@@ -1,4 +1,4 @@
-# Automatic-Stability-Measurement
+# Autocharacterization-Stability
 ______________________________________________
 <img src="./data/automated_degradation_R3.png" align = "center" width="500" />
 
