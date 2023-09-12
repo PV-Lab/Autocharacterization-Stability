@@ -6,7 +6,7 @@ ______________________________________________
 - [Package Description](#description)
 - [Installation](#installation)
 - [Usage](#usage)
-- [Trouble_Shooting](#trouble_shooting)
+- [Trouble-Shooting](#trouble-shooting)
 
 
 # Description
@@ -101,6 +101,6 @@ Before starting, please carefully read the folders description table as it detai
 For composition extraction, if the user is analyzing materials created using a HT synthesis system such as AF, they will be required to define a set of parameters to align the print pattern to the location of the droplets in order to obtain a good composition extraction. If the material system takes another form however, the color calibration and instability measurement functions can be adapted to fit the new application. 
 
 
-# Trouble_Shooting 
+# Trouble-Shooting 
 - Make sure the Images_tiff folder is completely empty before you run the code. Sometimes the computer file management system will add an administrative file in the folder after it is created. Before running the code please open the file through the file manager and make sure it is completely empty. 
 - To contact the file creator Eunice Aissi, email eunicea@mit.edu 
