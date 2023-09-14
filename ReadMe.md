@@ -51,16 +51,8 @@ This algorithm consists of two parts:
 
 At the beginning of the degradation study, an image of a reference color chart (X-Rite Colour Checker Passport; 28 reference color patches), $I_R$, is taken under the same illumination conditions as the perovskite semiconductor samples. Images at each time step, $\Omega (\Delta t)$, are transformed into the L*a*b color space and subsequently to a stable reference color space (standard observer CIE 1931 2 degrees, standard illuminant D50) by applying a 3D-thin plate spline distortion matrix $D$ defined by $I_R$ and known colors of the reference color chart:
 
-\begin{equation}
-    \label{eq:4}
-    D= \begin{bmatrix}
-    V\\
-    O(4,3)
-    \end{bmatrix}{\begin{bmatrix}
-    K & P \\
-    P^T & O(4,4)
-    \end{bmatrix}}^{-1}
-\end{equation} 
+<img src="./data/color_correct_eq.jpg" align = "center" width="500" />
+ 
 
  Here, $O(n,m)$ is an $n$x$m$ zero matrix, $V$ is a matrix of the color checker reference colors in the stable reference color space, $P$ is a matrix of the color checker RGB colors obtained from $I_R$, and $K$ is a distortion matrix between the color checker colors in the reference space and in $I_R$. Using the color-calibrated images and droplet pixel locations given by $\Phi$, a final array, $R(t; \widehat{X}, \widehat{Y})$ of the average color at time $t$ for perovskite semiconductor of composition FA$_{1-x}$MA$_x$PbI$_3$ is created. The color of each droplet is measured to determine a stability metric $I_c$  
 
@@ -70,15 +62,11 @@ At the beginning of the degradation study, an image of a reference color chart (
 
 ### Instability Measurement Calculation 
 
-At the beginning of the degradation study, an image of a reference color chart (X-Rite Colour Checker Passport; 28 reference color patches), $I_R$, is taken under the same illumination conditions as the perovskite semiconductor samples. Images at each time step, $\Omega (\Delta t)$, are transformed into L*a*b and subsequently to a stable reference color space (standard observer CIE 1931 2 degrees, standard illuminant D50) by applying a 3D-thin plate spline distortion matrix $D$ \cite{Sun2021,s120607063} defined by $I_R$ and known colors of the reference color chart:
+We compute the degradation intensity, $I_c$, of each HT-manufactured perovskite composition by integrating the change in color, $R$, for each sample over time, $t$ \cite{Sun2021}:
 
-\begin{equation}
-    \label{eq:5}
-    I_c(\widehat{X},\widehat{Y})= \sum_{R = \{r,g,b\}} \int_{0}^{T} |R(t; \widehat{X}, \widehat{Y}) - R(0;\widehat{X},\widehat{Y})| dt,
-\end{equation}
+<img src="./data/Ic_eq.jpg" align = "center" width="500" />
 
-
- Here, $O(n,m)$ is an $n$x$m$ zero matrix, $V$ is a matrix of the color checker reference colors in the stable reference color space, $P$ is a matrix of the color checker RGB colors obtained from $I_R$, and $K$ is a distortion matrix between the color checker colors in the reference space and in $I_R$. Using the color-calibrated images and droplet pixel locations given by $\Phi$, a final array, $R(t; \widehat{X}, \widehat{Y})$ of the average color at time $t$ for perovskite semiconductor of composition FA$_{1-x}$MA$_x$PbI$_3$ is created. The color of each droplet is measured to determine a stability metric $I_c$  
+where $T$ is the duration of the degradation and the three reflectance color channels are red, $r$, green, $g$, and blue, $b$, for each sample, $(\widehat{X},\widehat{Y})_n \in N$. High $I_c$ indicates high color change, corresponding to high degradation; $I_c$ close to zero indicates low color change and low degradation.
  
 <img src="./data/extracted_stability_trend_and_samples_R1.png" align = "center" width="500" />
 
