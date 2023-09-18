@@ -50,17 +50,18 @@ def time_names_0(time_step,cut,start_image):
     i = 0 
     # Read each Tiff Image store in img_raw and count the number of pictures and store as i 
     for name in os.listdir('./Images_Tiff'):
-        #print(name)
-        i+=1
-        #print(f'./Images_Tiff/{name}')
-        #print(os.path.isfile(f'./Images_Tiff/{name}'))
-        if os.path.isfile(f'./Images_Tiff/{name}'):
-            if i == 1:
-                #print(i)
-                img_raw = tif.imread(f'./Images_Tiff/{name}')
-            else :
-                # print(i)
-                img_raw = np.concatenate((img_raw,tif.imread(f'./Images_Tiff/{name}')))
+        if name.endswith('.tif'):
+            #print(name)
+            i+=1
+            #print(f'./Images_Tiff/{name}')
+            #print(os.path.isfile(f'./Images_Tiff/{name}'))
+            if os.path.isfile(f'./Images_Tiff/{name}'):
+                if i == 1:
+                    #print(i)
+                    img_raw = tif.imread(f'./Images_Tiff/{name}')
+                else :
+                    # print(i)
+                    img_raw = np.concatenate((img_raw,tif.imread(f'./Images_Tiff/{name}')))
     # img_raw_start = img_raw[start_image-1, :,:]
     #print(img_raw.shape)
     img_raw_start = np.copy(img_raw[start_image:,:,:,:])
@@ -610,8 +611,13 @@ def point_ave(min_dis,pt_xy, verbose):
     I = np.reshape(I,(len(I),1))
     J = np.reshape(J,(len(J),1))
     indices = np.concatenate((I,J),1)
-    #print("Indices")
-    #print(indices)
+    # print("Indices = all poins that are too close to each other")
+    # print(indices)
+    # Find points that are all alone 
+    alone = np.array(list(set(np.arange(0,len(pt_xy))) - set(np.unique(indices))))
+    # print('Alone')
+    # print(alone)
+    
     #print(indices)
     ### Get rid of repeated points (ie. [1,2]=[2,1])
     #### Use the same procedure as above, turn into a string to compare than turn back into numbers
@@ -626,8 +632,8 @@ def point_ave(min_dis,pt_xy, verbose):
             cl_2 = np.append(cl_2, indices[i][1].astype('uint8'))
             cl_pt_arr = [cl_pt]
             cl_pts = np.concatenate((cl_pts,cl_pt_arr),0)
-    #print('Cl_pts')
-    #print(cl_pts)
+    # print('Cl_pts = repeats are removed')
+    # print(cl_pts)
     cl_pts_num = np.empty((len(cl_pts),2))
     for i in range(len(cl_pts)):
         for j in range(2):
@@ -635,8 +641,8 @@ def point_ave(min_dis,pt_xy, verbose):
                 cl_pts_num[i][j]=cl_1[i]
             else:
                 cl_pts_num[i][j]=cl_2[i]
-    #print("cl_pts_num")
-    #print(cl_pts_num)
+    # print("cl_pts_num = cl_pts but as numbers")
+    # print(cl_pts_num)
     ### Average the two points that are too close 
     for i in range(len(cl_pts_num)):
         pt1x = pt_xy[int(cl_pts_num[i][0])][0]
@@ -650,50 +656,36 @@ def point_ave(min_dis,pt_xy, verbose):
         else:
             cor = np.concatenate((cor, [[ptx,pty]]),0)
     ### Create the final list of points
-    # Add another filter, if you have a bunch of points that are too close together after averaging then chose just one of those points 
-    # print('cor')
-    # print(cl_pts_num)
-    # print(cor)
-    dis = np.empty(shape=(len(cor),len(cor)))
-    I=[]
-    J=[]
-    pt_x = np.array(cor[:,0])
-    pt_y = np.array(cor[:,1])
-    for i in range(len(pt_x)):
-        for j in range(len(pt_x)):
-            if j!=i:
-                dis[i,j]=np.sqrt((pt_x[i]-pt_x[j])**2 + (pt_y[i]-pt_y[j])**2)
-                if dis[i,j]<min_dis:
-                    I = np.append(I,i)
-                    J = np.append(J,j)
-            if j==i:
-                dis[i,j]=0
-    I = np.reshape(I,(len(I),1))
-    J = np.reshape(J,(len(J),1))
-    indices = np.concatenate((I,J),1)
-    points_TBD = np.unique(indices)
-    #print("TBD")
-    #print(points_TBD)
-    #print("cor")
-    #print(cor)
-    cor = np.delete(cor,points_TBD.astype('uint8')[:-1],0)
+    rep= []
+    tbd_2 = np.unique(cl_pts_num[:,1])
+    for i in range(len(cl_pts_num)):
+        if cl_pts_num[i][0] not in tbd_2:
+            if cl_pts_num[i][0] not in rep:
+                rep = np.concatenate([rep, [cl_pts_num[i][0]]])
+                if i == 0:
+                    cor_f = [cor[i]] 
+                else:
+                    cor_f = np.concatenate([cor_f,[cor[i]]])
+            else: 
+                cor_f = cor_f 
+        else:
+            cor_f = cor_f 
+    if len(alone)!=0:
+        if len(cl_pts_num)==0:
+            cor_f = pt_xy[alone]
+        else:
+            cor_f = np.concatenate([cor_f,pt_xy[alone]])
+    if len(cl_pts_num) ==0 and len(alone) == 0:
+        raise Exception("No Points where detected at all, please change parameters for better edge detection")
+    # print(cor_f)
     
-    cor_rem = np.unique(cl_pts_num)
-    #print('cor_rem = np.unique(cl_pts_num)')
-    #print(cor_rem)
-    pts_final = np.copy(pt_xy)
-    #print(' pts_final = np.copy(pt_xy)')
-    #print(pts_final)
-    pts_final = np.delete(pts_final,cor_rem.astype('uint8'),0)
-    #print('pts_final = np.delete(pts_final,cor_rem.astype(uint8),0)')
-    #print(pts_final)
-    
-    pts_final = np.concatenate((pts_final,cor),0)
-    #print('pts_final = np.concatenate((pts_final,cor),0)')
-    #print(pts_final)
-    return cor, cl_pts_num,pts_final
+    return cl_pts_num,cor_f
 
-def Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose):
+def Edge_detect(img_erode,crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,ang_min,k_del,k_edge,k_edge_er,verbose):
+    # For more explanation on there parameters see : https://docs.opencv.org/3.4/dd/d1a/group__imgproc__feature.html#ga8618180a5948286384e3b7ca02f6feeb
+    # linesP = cv2.HoughLinesP(edged, 1, np.pi / 180, ts, None, srn,stn)
+    ########################################################################################################
+    ang_max = 180-ang_min  
     # Image Processes 
     ## Copy the image to be warped 
     im = np.copy(crop_image)
@@ -710,12 +702,33 @@ def Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose):
     #im_sharp = cv2.dilate(im_sharp,kernel1)
     #ret, thresh1 = cv2.threshold(im_sharp, ta, 255, cv2.THRESH_BINARY)
     edged = cv2.Canny(thresh, lb, ub,apertureSize=ap_size)
-    '''
-    imer = cv2.erode(im,(5,5))
-    imgray = cv2.cvtColor(imer, cv2.COLOR_RGB2GRAY)
-    ret, thresh1 = cv2.threshold(im, ta, 255, cv2.THRESH_BINARY)
-    edged = cv2.Canny(imgray, a, b,apertureSize=ap_size)
-    '''
+    # print('np.unique(edged)')
+    # print(np.unique(edged))
+    # print('Size of segmented image and size of edged image')
+    # print(edged.shape)
+    # print(img_erode.shape)
+    # Get rid of droplets to remove noise from line transform 
+    fig, ax = plt.subplots()
+    ax.imshow(img_erode)
+    plt.title('Droplet Segmentation')
+    if verbose:
+        plt.show()
+    plt.close()
+    # Dilate image erode by a lot then remove those pixels from the edged image 
+    # DIlate img_erode 
+    kernel2 = np.ones((k_del,k_del), np.uint8)
+    img_del_drops = np.copy(img_erode)
+    img_del_drops = cv2.dilate(img_del_drops,kernel2)
+    # Remove droplet pixels from the edged image
+    edged[np.where(img_del_drops !=0)] = 0 
+    # dialate the edged image to remove noise and close holes 
+    kernel3 = np.ones((k_edge_er,k_edge_er), np.uint8)
+    kernel4 = np.ones((k_edge,k_edge), np.uint8)
+
+    #edged = cv2.erode(edged,kernel3)
+    edged = cv2.dilate(edged,kernel4)
+    edged = cv2.erode(edged,kernel3)
+
     ## Use probalistic Hough Lines transfrom to find the lines in the image that shoudl correspond to the edge of the glass slide 
     linesP = cv2.HoughLinesP(edged, 1, np.pi / 180, ts, None, srn,stn)
     ## Initiate empty vectors to store the slopes and y-intercepts of all the detected lines
@@ -732,24 +745,27 @@ def Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose):
             B = np.append(B,[b]) 
 
     ## Define the figure for visual validation of computer vision algorythm 
-    fig, ax = plt.subplots(3,figsize=(1248 / 200, 1024 / 300))
-    ## Plot the lines 
+    # Check for lines that are too close to each other 
+    vects=np.ones((2,len(M)))
+    vects[1,:] = M
+    # print('All Lines as vectors')
+    # print(vects)
+    # Find the angle between all the detected lines 
+    ab_invcos = np.zeros((len(M),len(M)))
     for i in range(len(M)):
-        ax[0].axline((0,B[i]),slope=M[i])
-    ax[0].imshow(im)
-    ax[0].title.set_text('Detected Edges of the Glass Slide')
-    ax[1].imshow(im2)
-    ax[1].title.set_text('Results of Hough Transform')
-    ax[2].imshow(edged)
-    ax[2].title.set_text('Results of Canny Edge Detection')
-    ax[0].tick_params(left = False, right = False , labelleft = False ,
-                labelbottom = False, bottom = False)
-    ax[1].tick_params(left = False, right = False , labelleft = False ,
-                labelbottom = False, bottom = False)
-    ax[2].tick_params(left = False, right = False , labelleft = False ,
-                labelbottom = False, bottom = False)
-    fig.tight_layout()
-
+        for j in range(len(M)):
+            a = vects[:,i]
+            b = vects[:,j]
+            if i != j:
+                # print(np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b)))
+                inv = np.dot(a,b)/(np.linalg.norm(a)*np.linalg.norm(b))
+                if abs(inv)>1:
+                    inv = math.copysign(1, inv)
+                ab_invcos[i,j] = math.acos(inv)
+                # ab_invcos in an nxn vector of the angles between all the detected lines 
+    ab_invcos = ab_invcos*180/math.pi
+    # print('Angle Between all lines in Degrees')
+    # print(ab_invcos.astype(int))
     # Use the results of Image Processing to find the corners of the glass slide 
     max_x = np.size(crop_image,1)
     max_y = np.size(crop_image,0)
@@ -764,15 +780,246 @@ def Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose):
             if j != i:
                 pts_x[i,j] = (B[j]-B[i])/(M[i]-M[j])
                 pts_y[i,j] = M[i]*pts_x[i,j] + B[i]
+                # ax[3].plot(pts_x[i,j],pts_y[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
                 # If the points are within the image, save them as potential corner points and plot them
-                if pts_x[i,j]<=max_x and pts_y[i,j]<=max_y and pts_x[i,j]>0 and pts_y[i,j]>0:
-                    ax[0].plot(pts_x[i,j],pts_y[i,j], marker="o", markersize=5, markeredgecolor="red",markerfacecolor="red")
-                    pt_x = np.append(pt_x,pts_x[i,j])
-                    pt_y = np.append(pt_y,pts_y[i,j])
             else:
                 pts_x[i,j] = 0
                 pts_y[i,j] = 0
+    ##############################################################################################
+    # print('pts_x and y')
+    # print(pts_x.astype(int))
+    # print(pts_y.astype(int))
+    # Find lines that have an angle difference of less than 10degrees and intersect in the image 
+    # find indices of lines that intersect 
+    pts_xm = np.copy(pts_x)
+    pts_ym = np.copy(pts_y)
+    pts_xm[np.where(pts_xm<=0)] = 0 
+    pts_ym[np.where(pts_ym<=0)] = 0 
+    pts_xm[np.where(pts_xm>max_x)] = 0 
+    pts_ym[np.where(pts_ym>max_y)] = 0 
+    pt_xym = np.zeros((len(M),len(M)))
+    pts_xm[np.where(pts_ym == 0)] = 0 
+    pts_ym[np.where(pts_xm == 0)] = 0
+    pt_xym = pts_xm+pts_ym
+    lines = np.where(pt_xym!=0)
+    lines = np.array(lines)
+    lines_sorted = np.sort(lines,0)
+    inter_index = np.unique(lines_sorted, axis = 1)
+    # print('inter_index')
+    # print(inter_index)
+    # Find lines that have an angle between them that is less than 10 degrees 
+    # set every other angle to 1 
+    angles = np.copy(ab_invcos) 
+    # print('angles before changes')
+    # print(angles.astype(int))
+    angles1 = np.zeros_like(ab_invcos)
+    # print('np.where(angles>ang_min)')
+    # print(np.where(angles>ang_min))
+    # print(angles[np.where(angles>ang_min)])
+    zero_ind = np.array(np.where(angles>ang_min))
+    one_ind = np.array(np.where(angles<=ang_min))
+    refl = np.array(np.where(angles>=ang_max))
+    angles[zero_ind[0],zero_ind[1]] =  0
+    angles[one_ind[0],one_ind[1]] =  1
+    angles[refl[0],refl[1]] =  1
+
+    # 1 for all pairs of line closer than 10 degrees
+    # Find lines with an angle between them less then 10 degrees and that intersect
+    # Lines that intersect 
+    angles1[inter_index[0],inter_index[1]] = 1 
+    # 1 for all pairs that intersect 
+    # Sum them up and the places that are 2 are where both conditions are true 
+    lines_TBD = angles+angles1 
+    lines_tc = np.array(np.where(lines_TBD==2))
+    # print(f' 0 where >{ang_min} and 1 where <{ang_min} and >{ang_max}')
+    # print(angles.astype(int))
+    # print(' 0 where lines do not intersect and 1 where they do ')
+    # print(angles1.astype(int))
+    # print('Lines_TBD')
+    # print(lines_TBD.astype(int))
+    # print('lines_tc')
+    # print(lines_tc.astype(int))
+    # find points to plot 
+    pts_xc = np.copy(pts_x)
+    pts_yc = np.copy(pts_y)
+    # print('pts_xc and yc after copying ')
+    # print(pts_xc.astype(int))
+    # print(pts_yc.astype(int))
+    fig, ax = plt.subplots(1)
+    ax.imshow(im)
+    ax.set_xlim(0,np.size(crop_image,1))
+    ax.set_ylim(0,np.size(crop_image,0))
+    ax.invert_yaxis()
+    plt.title('pts_xc and yc after copying ')
+    for i in range(len(M)):
+        for j in range(len(M)):
+            # Between every line (ie line 1 and 3) find the x(pts_x) and y(pts_y) intercept of the lines 
+            if j != i:
+                ax.plot(pts_x[i,j],pts_y[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
+                # If the points are wi
+    if verbose:
+        plt.show()
+    plt.close()
+    # make sure they are not too large 
+    max_xtbd = np.array(np.where(pts_xc>=max_x))
+    max_ytbd = np.array(np.where(pts_yc>=max_y))
+    pts_xc[max_xtbd[0],max_xtbd[1]] = 0 
+    pts_yc[max_ytbd[0],max_ytbd[1]] = 0 
+    # print(f'Remove x > {max_x} and y >{max_y}')
+    # print(pts_xc.astype(int))
+    # print(pts_yc.astype(int))
+    fig, ax = plt.subplots(1)
+    ax.imshow(im)
+    ax.set_xlim(0,np.size(crop_image,1))
+    ax.set_ylim(0,np.size(crop_image,0))
+    ax.invert_yaxis()
+    plt.title(f'Remove x > {max_x} and y >{max_y}')
+    for i in range(len(M)):
+        for j in range(len(M)):
+            # Between every line (ie line 1 and 3) find the x(pts_x) and y(pts_y) intercept of the lines 
+            if j != i:
+                ax.plot(pts_xc[i,j],pts_yc[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
+                # If the points are wi
+    if verbose:
+        plt.show()
+    plt.close()
+    # make sure they are not too small
+    min_xtbd = np.array(np.where(pts_xc<=0.0))
+    min_ytbd = np.array(np.where(pts_yc<=0.0))
+    # print(min_xtbd)
+    # print(min_ytbd)
+    pts_xc[min_xtbd[0],min_xtbd[1]] = 0 
+    pts_yc[min_ytbd[0],min_ytbd[1]] = 0 
+
+    # print(f'Remove x and y <0') 
+    # print(pts_xc)
+    # print(pts_yc)
+    fig, ax = plt.subplots(1)
+    ax.imshow(im)
+    ax.set_xlim(0,np.size(crop_image,1))
+    ax.set_ylim(0,np.size(crop_image,0))
+    ax.invert_yaxis()
+    plt.title(f'Remove x and y <0')
+    for i in range(len(M)):
+        for j in range(len(M)):
+            # Between every line (ie line 1 and 3) find the x(pts_x) and y(pts_y) intercept of the lines 
+            if j != i:
+                ax.plot(pts_xc[i,j],pts_yc[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
+                # If the points are wi
+    if verbose:
+        plt.show()
+    plt.close()
+    # Remove points of intersection for lines that are too close in angle 
+    pts_xc[lines_tc[0],lines_tc[1]] = 0 
+    pts_yc[lines_tc[0],lines_tc[1]] = 0 
+    pts_xc[lines_tc[1],lines_tc[0]] = 0 
+    pts_yc[lines_tc[1],lines_tc[0]] = 0 
+    # print('Remove points for lines that are too close in angle')
+    # print(pts_xc.astype(int))
+    # print(pts_yc.astype(int))
+    fig, ax = plt.subplots(1)
+    ax.imshow(im)
+    ax.set_xlim(0,np.size(crop_image,1))
+    ax.set_ylim(0,np.size(crop_image,0))
+    ax.invert_yaxis()
+    plt.title('Remove points for lines that are too close in angle')
+    for i in range(len(M)):
+        for j in range(len(M)):
+            # Between every line (ie line 1 and 3) find the x(pts_x) and y(pts_y) intercept of the lines 
+            if j != i:
+                ax.plot(pts_xc[i,j],pts_yc[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
+                # If the points are wi
+    if verbose:
+        plt.show()
+    plt.close()
+    # Get ride of points n the edges of the photo
+    edge_xtbd = np.array(np.where(pts_yc==0))
+    edge_ytbd = np.array(np.where(pts_xc==0))
+    pts_xc[edge_xtbd[0],edge_xtbd[1]] = 0 
+    pts_yc[edge_ytbd[0],edge_ytbd[1]] = 0 
+
+    # print('Removed points too close to the edge pts_xc and yc')
+    # print(pts_xc.astype(int))
+    # print(pts_yc.astype(int))
+    fig, ax = plt.subplots(1)
+    ax.imshow(im)
+    ax.set_xlim(0,np.size(crop_image,1))
+    ax.set_ylim(0,np.size(crop_image,0))
+    ax.invert_yaxis()
+    plt.title('Removed points too close to the edge pts_xc and yc')
+    for i in range(len(M)):
+        for j in range(len(M)):
+            # Between every line (ie line 1 and 3) find the x(pts_x) and y(pts_y) intercept of the lines 
+            if j != i:
+                ax.plot(pts_xc[i,j],pts_yc[i,j], marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
+                # If the points are wi
+    if verbose:
+        plt.show()
+    plt.close()
+    # find lines with > 3 intersections
+    # find the points that are farthest apart on that line 
+    # Take that lines columns for x and y points 
+    # calculate farthest points 
+    # keep those points and delete other points
+    ######################################################################
+    pts_xc_u = np.triu(pts_xc)
+    pts_yc_u = np.triu(pts_yc)
+    intersection_counts = np.zeros(len(M))
+    for i in range(len(M)):
+        for j in range(len(M)):
+            if i != j:
+                if pts_xc_u[i,j] !=0 and pts_yc_u[i,j]!=0:
+                    intersection_counts[i] += 1
+    # Define a threshold for the number of intersections
+    intersection_threshold = 3
+    # print("Step 1")
+    # print(pts_xc_u.astype(int))
+    # print(pts_yc_u.astype(int))
+    # print(intersection_counts)
+    invalid_lines = np.where(intersection_counts >=intersection_threshold)[0]
+    for i in range(len(invalid_lines)):
+        row_x = np.copy(pts_xc[invalid_lines[i],:])
+        row_y = np.copy(pts_yc[invalid_lines[i],:]) 
+        x_points = row_x[np.where(row_x!=0)] 
+        y_points = row_y[np.where(row_y!=0)] 
+        # print('Points x and y')
+        # print(x_points)
+        # print(y_points)
+ #################################################################################################################
+    # create the final pt_x and pt_y array 
+    f_x = np.array(np.where(pts_xc!=0))
+    f_y = np.array(np.where(pts_yc!=0))
+    pt_x = pts_x[f_x[0],f_x[1]]
+    pt_y = pts_y[f_y[0],f_y[1]]
+    # print('final pt_x and pt_y')
+    # print(pt_x)
+    # print(pt_y)
+    # Getting rid of middle lines
+    # Idea - if on of the lines has three intersections with one point between the other two, 
+    # get rid of the line with the center point 
+    # find lines with > 3 intersections
+    # find the poinrts that are farthest apart on that line 
+    # keep those points and delete other points 
+    ##############################################################################################################
     ## Make sure the detected edges and points are ploted on a figure that is the same size as the image to be warped
+    fig, ax = plt.subplots(3,figsize=(1248 / 100, 1024 / 200))
+    ## Plot the lines 
+    for i in range(len(M)):
+        ax[0].axline((0,B[i]),slope=M[i])
+
+    ax[0].imshow(im)
+    ax[0].title.set_text('Detected Edges of the Glass Slide')
+    ax[1].imshow(im2)
+    ax[1].title.set_text('Results of Hough Transform')
+    ax[2].imshow(edged)
+    ax[2].title.set_text('Results of Canny Edge Detection')
+    ax[0].tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+    ax[1].tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+    ax[2].tick_params(left = False, right = False , labelleft = False ,
+                labelbottom = False, bottom = False)
+    fig.tight_layout()
     ax[0].set_xlim(0,np.size(crop_image,1))
     ax[0].set_ylim(0,np.size(crop_image,0))
     ax[0].invert_yaxis()
@@ -807,10 +1054,14 @@ def Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose):
         pt_xy = np.concatenate((pt_xy,pt_xyspl),0)
     ### Get rid of the first 0,0 point added for ease of processing 
     pt_xy=pt_xy[1:] 
+    ax[0].scatter(pt_x,pt_y,color = 'red') # marker="o", markersize=1, markeredgecolor="red",markerfacecolor="red")
     if verbose:
         plt.show()
     plt.close()
+    # Plot to check thing
+    # print(pt_xy.astype(int))
     return pt_xy
+
 
 def warp_image(corners,crop_image,img_erode):
     # Find which of the points is the lower left, upper right etc..

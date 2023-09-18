@@ -25,6 +25,7 @@ import matplotlib.patches as patches
 import compextractor
 import matplotlib.animation as animation
 from colorfunctions import point_ave,Edge_detect,warp_image,clean_warp
+import requests
 
 def unwrap_tiff(): 
     ID_path = './Sample_set_simple/sample_names.xlsx'
@@ -239,7 +240,7 @@ def load_pick():
         already_processed = True
     return RGB_result, Number_of_drops, num_pics, time, name, drops, droplet_count0, drop_IDs, img_erode, crop_params, start_comp, end_comp, sample_ID, already_processed, cv_params,extract_params 
 
-def main_edge_detect(name , crop_params, cv_params, already_processed, detect_params, save_new_params=True, verbose=False):
+def main_edge_detect(img_erode, name, crop_params, cv_params, already_processed, detect_params, save_new_params=True, verbose=False):
     # Get cropped Image 
     img_name = name[0]
     img_path = f'./Images_simp/{img_name}'
@@ -263,6 +264,10 @@ def main_edge_detect(name , crop_params, cv_params, already_processed, detect_pa
         srn = cv_params[7]
         stn = cv_params[8]
         min_dis = cv_params[9]
+        ang_min = cv_params[10]
+        k_del = cv_params[11]
+        k_edge = cv_params[12]
+        k_edge_er = cv_params[13]
     else:
         k = detect_params['k'] # kernel size for erode and dilating the original image to get rid of image noise  
         ap_size = detect_params['ap_size']
@@ -274,19 +279,37 @@ def main_edge_detect(name , crop_params, cv_params, already_processed, detect_pa
         srn = detect_params['srn'] 
         stn = detect_params['stn'] 
         min_dis = detect_params['min_dis']
+        ang_min = detect_params['ang_min']
+        k_del = detect_params['k_del']
+        k_edge = detect_params['k_edge']
+        k_edge_er = detect_params['k_edge_er']
 
-    pt_xy = Edge_detect(crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,verbose)
-    
+    pt_xy = Edge_detect(img_erode,crop_image,ap_size,k,lb,ub,c,block,ts,srn,stn,ang_min,k_del,k_edge,k_edge_er,verbose)
+    # print(pt_xy)
+    # print(len(pt_xy))
     ## Get rid of points that are too close to each other
-    corners = [1,2,3,4,5] # random array of length greater than four
+    if len(pt_xy>4):
+        corners = [1,2,3,4,5] # random array of length greater than four
+    elif len(pt_xy==4):
+        corners = np.copy(pt_xy)
+    elif len(pt_xy<4):
+        raise Exception("Not enough Corners Detected, Change the detec_params to get better results")
     starting_pts = np.copy(pt_xy)
     if save_new_params:
-        cv_params = [k,ap_size,lb,ub,c,block,ts,srn,stn,min_dis]
+        cv_params = [k,ap_size,lb,ub,c,block,ts,srn,stn,min_dis,ang_min,k_del,k_edge,k_edge_er]
         pickle.dump(cv_params, open('./Sample_set_simple/cv_params','wb'))
-    
+    i = 0 
     while len(corners)>4:
-        corners_averaged,close_points,corners  = point_ave(min_dis,starting_pts,verbose)
+        i+=1
+        close_points,corners = point_ave(min_dis,starting_pts,verbose)
+        # print('corners')
+        # print(corners)
         starting_pts = corners
+        if len(corners)<4:
+            raise Exception("Not enough Corners Detected, Change the detec_params to get better results")
+        if i >=10:
+            raise Exception("Too many attempts, Change detec_params for better edge detection")
+            break 
     print('Found Corners')
 
     #### Get all four corners of the glass slide 
@@ -672,3 +695,27 @@ def individual_drops(c,drop_IDs,Ic_reorder,Test_array_reorder,verbose=False):
         if verbose:
             plt.show()
         plt.close()
+        
+def download(tiff, url, filename, fn=None):
+    if fn is None:
+        fn = url.split('/')[-1]
+        r = requests.get(url)
+    if r.status_code == 200:
+        if tiff == 'tif':
+            open('Images_Tiff/'+filename, 'wb').write(r.content)
+        else: 
+            open('Images_simp/'+filename, 'wb').write(r.content)
+            
+        print("{} downloaded: {:.3f} MB".format('data/'+filename, len(r.content)/1024000.))
+    else:
+        print("url not found:", url)
+        
+def png_to_jpg(input_path, output_path):
+    try:
+        # Open the PNG image
+        with Image.open(input_path) as img:
+            # Convert and save as JPEG
+            img.convert("RGB").save(output_path, "JPEG")
+            print(f"Image '{input_path}' converted to '{output_path}'")
+    except Exception as e:
+        print(f"Error converting '{input_path}': {e}")
