@@ -104,5 +104,5 @@ For composition extraction, if the user is analyzing materials created using a H
 
 
 # Trouble_Shooting 
-- Make sure the Images_tiff folder is completely empty before you run the code. Sometimes the computer file management system will add an administrative file in the folder after it is created. Before running the code please open the file through the file manager and make sure it is completely empty. 
+- Tif files note opening: Make sure the Images_tiff folder is completely empty before you run the code. Sometimes the computer file management system will add an administrative file in the folder after it is created. Before running the code please open the file through the file manager and make sure it is completely empty, besides the tif files. 
 - To contact the file creator Eunice Aissi, email eunicea@mit.edu 
