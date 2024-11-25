@@ -15,6 +15,21 @@ This code utilizes several computer vision techniques to quickly extract and ana
 
 This code was developed by Eunice Aissi (Course 2 MIT Ph.D Entry class of 2022) in 2023 for the Accelerated Materials Development Lab for Sustainability under PI Tonio Buonassisi. This code is based on the work of Armi Tiihomen and Aleks Siemenn (Course 2 MIT PhD Entry class of 2019) 
 
+# How to Cite
+Please cite our paper if you use this code:
+
+    @article{siemenn2024using,
+    title={Using scalable computer vision to automate high-throughput semiconductor characterization},
+    author={Siemenn, Alexander E and Aissi, Eunice and Sheng, Fang and Tiihonen, Armi and Kavak, Hamide and Das, Basita and Buonassisi, Tonio},
+    journal={Nature Communications},
+    volume={15},
+    number={1},
+    pages={4654},
+    year={2024},
+    publisher={Nature Publishing Group UK London}
+    }
+
+
 | Folders | Description |
 | ------------- | ------------------------------ |
 |[Results](./Results) | An empty folder to store results in.|
